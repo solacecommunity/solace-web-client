@@ -1,0 +1,440 @@
+﻿@page "/queue-browser"
+@using SolaceWebClient.Services
+@using Blazorise
+@using Blazorise.DataGrid
+@using SolaceSystems.Solclient.Messaging
+@using Microsoft.AspNetCore.Components.Forms
+@inject QueueBrowserService QueueBrowserService
+@inject ILogger<QueueBrowser> Logger
+@inject Blazored.Toast.Services.IToastService toastService
+@inject NavigationManager Navigation
+@inject PresetService PresetService
+@inject IMessageService MessageService
+@inject IJSRuntime JSRuntime
+
+<Layout>
+    <Title>Queue Browser</Title>
+
+    <div class="form-group">
+        <Dropdown @ref="presetDropdown">
+            <DropdownToggle Color="Color.Primary">@selectedPreset</DropdownToggle>
+            <DropdownMenu>
+                @foreach (var group in presetGroups)
+                {
+                    <Dropdown>
+                        <DropdownToggle> @group.GroupName </DropdownToggle>
+                        <DropdownMenu>
+                            @foreach (var preset in group.Presets)
+                            {
+                                <DropdownItem @onclick="() => LoadPreset(preset)">@preset.Name</DropdownItem>
+                            }
+                        </DropdownMenu>
+                    </Dropdown>
+                }
+                @foreach (var preset in ungroupedPresets)
+                {
+                    <DropdownItem @onclick="() => LoadPreset(preset)">@preset.Name</DropdownItem>
+                }
+            </DropdownMenu>
+        </Dropdown>
+    </div>
+
+    <div class="overlay" style="display: @(isDeleting ? "block" : "none")">
+        <div class="loading-message-delete">
+            <p>Deleting Message</p>
+            <p>@deletingMessageId</p>
+        </div>
+    </div>
+    <div class="overlay" style="display: @(isBrowsing ? "block" : "none")">
+        <div class="loading-message-browsing">
+            <p>Browsing Queue ...</p>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <div class="input-with-checkbox">
+            <div class="input-container">
+                <label>Hostname:Port</label>
+                <input @bind="host" name="host" autocomplete="on" placeholder="tcps://broker.domain:55443" />
+            </div>
+            <div class="checkbox-container">
+                <input type="checkbox" @bind="sslVerify" id="sslVerify" />
+                <label for="sslVerify">SSL Verify</label>
+            </div>
+        </div>
+    </div>
+    <div class="form-group">
+        <label>VPN Name</label>
+        <input @bind="vpnName" name="vpnName" autocomplete="on" placeholder="default" />
+    </div>
+    <div class="form-group">
+        <Dropdown @ref="authDropdown">
+            <DropdownToggle Color="Color.Primary">
+                @auth.Scheme
+            </DropdownToggle>
+            <DropdownMenu>
+                <DropdownItem Clicked="@(() => OnAuthSchemeChanged("BASIC"))">BasicAuth</DropdownItem>
+                <DropdownItem Clicked="@(() => OnAuthSchemeChanged("CLIENT_CERTIFICATE"))">ClientCertificate</DropdownItem>
+                <DropdownItem Clicked="@(() => OnAuthSchemeChanged("OAUTH2"))">OAuth2</DropdownItem>
+            </DropdownMenu>
+        </Dropdown>
+    </div>
+    @if (auth.Scheme == AuthenticationSchemes.BASIC)
+    {
+        <div class="form-group" id="basicInputs">
+            <label for="username">Username:</label>
+            <input type="text" id="username" @bind="auth.Username" />
+
+            <label for="password">Password:</label>
+            <input type="password" id="password" @bind="auth.Password" />
+        </div>
+    }
+    else if (auth.Scheme == AuthenticationSchemes.CLIENT_CERTIFICATE)
+    {
+        <div class="form-group" id="clientCertInputs">
+            <label for="clientCertUpload">Client Certificate (PFX/P12):</label>
+            <Field>
+                <FileEdit Id="clientCertUpload"
+                          MaxFileSize="5242880"
+                          AutoReset="false"
+                          Changed="@OnClientCertUpload"
+                          Filter=".p12, .pfx" />
+            </Field>
+            
+            <label for="keystorePassphrase">Keystore Passphrase:</label>
+            <input type="password" id="keystorePassphrase" @bind="auth.KeystorePassphrase" />
+            <p />
+            <div style="border:1px solid white">
+                <small>Alternative: PEM-Upload (Certificate & Key)</small>
+                <label for="clientCertPemUpload">Client Certificate (PEM):</label>
+                <Field>
+                    <FileEdit Id="clientCertPemUpload"
+                              MaxFileSize="2097152"
+                              AutoReset="false"
+                              Changed="@OnClientCertPemUpload"
+                              Filter=".pem, .crt" />
+                </Field>
+                <label for="clientKeyPemUpload">Client Key (PEM):</label>
+                <Field>
+                    <FileEdit Id="clientKeyPemUpload"
+                              MaxFileSize="2097152"
+                              AutoReset="false"
+                              Changed="@OnClientKeyPemUpload"
+                              Filter=".pem, .key" />
+                </Field>
+            </div>
+        </div>
+    }
+    else if (auth.Scheme == AuthenticationSchemes.OAUTH2)
+    {
+        <div class="form-group" id="oauthInputs">
+            <label for="clientId">Client ID:</label>
+            <input type="text" id="clientId" @bind="auth.ClientId" />
+
+            <label for="clientSecret">Client Secret:</label>
+            <input type="password" id="clientSecret" @bind="auth.ClientSecret" />
+
+            <label for="scope">Scope:</label>
+            <input type="text" id="scope" @bind="auth.Scope" />
+
+            <label for="issuerUri">Issuer URI:</label>
+            <input type="text" id="issuerUri" @bind="auth.IssuerUri" />
+        </div>
+    }
+    <div class="form-group">
+        <label>Queue Name</label>
+        <input @bind="queueName" name="queueName" autocomplete="on" placeholder="Queue Name" />
+    </div>
+    <div class="form-group">
+        <label>Max Messages</label>
+        <input @bind="maxMessages" type="number" name="maxMessages" min="1" />
+    </div>
+    <button class="btn btn-primary" @onclick="BrowseQueueAsync">Browse Queue</button>
+
+    <h4>Messages</h4>
+    <DataGrid TItem="MessageDetails"
+              Data="@messages"
+              @ref="dataGrid"
+              RowOverlayBackground="Background.Transparent"
+              DetailRowStartsVisible="false"
+              Filterable
+              FilterMethod="DataGridFilterMethod.StartsWith"
+              ShowPager
+              ShowPageSizes
+              PagerPosition="DataGridPagerPosition.TopAndBottom"
+              PagerOptions="new(){ ButtonSize=Size.Small}">
+        <TotalItemsTemplate><Badge Color="Color.Success">@context.TotalItems total items</Badge></TotalItemsTemplate>
+        <TotalItemsShortTemplate><Badge Color="Color.Success">@context.TotalItems</Badge></TotalItemsShortTemplate>
+        <DataGridColumns>
+            <DataGridColumn TItem="MessageDetails" Field="ADMessageId" Caption="Message ID" />
+            <DataGridColumn TItem="MessageDetails" Field="FormattedDateTime" Caption="Sender Timestamp" />
+            <DataGridColumn TItem="MessageDetails" Field="DestinationName" Caption="Destination" />
+            <DataGridColumn TItem="MessageDetails" Field="ApplicationMessageId" Caption="Application Message ID" />
+            <DataGridColumn TItem="MessageDetails" Field="SenderId" Caption="Sender ID" />
+            <DataGridColumn TItem="MessageDetails" Field="ApplicationMessageType" Caption="Message Type" />
+            <DataGridColumn TItem="MessageDetails" Field="CorrelationId" Caption="Correlation ID" />
+            <DataGridColumn TItem="MessageDetails" Field="DeliveryMode" Caption="Delivery Mode" />
+            <DataGridNumericColumn TItem="MessageDetails" DisplayFormat="{0:N0}" Field="Size" Caption="Size in bytes (experimental)" />
+        </DataGridColumns>
+        <RowOverlayTemplate>
+            <Div>
+                <Button Color="Color.Danger" Size="Size.ExtraSmall" @onclick="() => DeleteMessage(context.Item.ADMessageId)">
+                    <Icon Name="IconName.Delete" /> Delete
+                </Button>
+            </Div>
+        </RowOverlayTemplate>
+        <DetailRowTemplate Context="message">
+            <div class="detail-row-user-properties">
+                <h3>User Properties:</h3>
+                @if (message.UserProperties != null)
+                {
+                    foreach (var property in message.UserProperties)
+                    {
+                        <p>@property.Key: @property.Value</p>
+                    }
+                }
+                else
+                {
+                    <p>No user properties</p>
+                }
+            </div>
+            <div class="detail-row-message-content">
+                <h3>Content:</h3>
+                @if (!string.IsNullOrWhiteSpace(message.MessageContent))
+                {
+                    <button class="btn btn-primary"
+                            @onclick="async () => await DownloadFileAsync(message)"
+                            @onclick:preventDefault="true">
+                        Download
+                    </button>
+                    <br>
+                    <div>
+                        @message.MessageContent
+                    </div>
+                    <br>
+                }
+                else if (!string.IsNullOrWhiteSpace(message.MessageContentXML))
+                {
+                    <button class="btn btn-primary"
+                            @onclick="async () => await DownloadFileXMLAsync(message)"
+                            @onclick:preventDefault="true">
+                        Download
+                    </button>
+                    <pre><code>@message.MessageContentXML</code></pre>
+                }
+                else
+                {
+                    <p>No content available</p>
+                }
+            </div>
+        </DetailRowTemplate>
+    </DataGrid>
+</Layout>
+
+@code {
+    private string? host;
+    private string? vpnName;
+    private string? queueName;
+    private int maxMessages = 50;
+    private bool sslVerify = true;
+    private List<MessageDetails> messages = new List<MessageDetails>();
+    private DataGrid<MessageDetails>? dataGrid;
+
+    private string selectedPreset = "Select Preset";
+    private List<PresetGroupModel> presetGroups = new List<PresetGroupModel>();
+    private List<PresetModel> ungroupedPresets = new List<PresetModel>();
+    Dropdown? presetDropdown;
+    Dropdown? authDropdown;
+
+    private bool isBrowsing = false;
+
+    private Authentication auth = new Authentication();
+
+    private Task OnAuthSchemeChanged(string scheme)
+    {
+        switch (scheme)
+        {
+            case "CLIENT_CERTIFICATE":
+                auth.Scheme = AuthenticationSchemes.CLIENT_CERTIFICATE;
+                break;
+            case "OAUTH2":
+                auth.Scheme = AuthenticationSchemes.OAUTH2;
+                break;
+            case "BASIC":
+            default:
+                auth.Scheme = AuthenticationSchemes.BASIC;
+                break;
+        }
+
+        return authDropdown?.Hide() ?? Task.CompletedTask;
+    }
+    private async Task BrowseQueueAsync()
+    {
+        if (host == null || vpnName == null || queueName == null)
+        {
+            toastService.ShowError("Host, VPN-Name or Queue cannot be empty.");
+            return;
+        }
+        try
+        {
+            isBrowsing = true;
+            messages = await QueueBrowserService.BrowseQueueAsync(host, vpnName, auth, queueName, sslVerify, maxMessages);
+            Logger.LogInformation("Messages retrieved: {count}", messages.Count);
+        }
+        catch (SolaceSystems.Solclient.Messaging.OperationErrorException ex)
+        {
+            Logger.LogError("Error browsing queue: {ex}", ex.ErrorInfo);
+            toastService.ShowError($"Error browsing Queue: {ex.ErrorInfo}");
+        }
+        finally
+        {
+            await Task.Delay(2000);
+            isBrowsing = false;
+            deletingMessageId = "";
+        }
+    }
+
+    private bool isDeleting = false;
+    private string deletingMessageId = "";
+
+    private async Task DeleteMessage(long adMessageId)
+    {
+        if (host == null || vpnName == null || queueName == null)
+        {
+            toastService.ShowError("Host, VPN-Name or Queue cannot be empty.");
+            return;
+        }
+        if (await MessageService.Confirm("Are you sure you want to delete message with ID: " + adMessageId + " ?", "Confirmation"))
+        {
+            try
+            {
+                isDeleting = true;
+                deletingMessageId = adMessageId.ToString();
+                await QueueBrowserService.DeleteMessage(host, vpnName, auth, queueName, sslVerify, adMessageId);
+                toastService.ShowSuccess("Deleting message with ID: " + deletingMessageId);
+                await BrowseQueueAsync();
+            }
+            catch (SolaceSystems.Solclient.Messaging.OperationErrorException ex)
+            {
+                toastService.ShowError($"Error deleting Message: {ex.ErrorInfo}");
+            }
+            finally
+            {
+                await Task.Delay(2000);
+                isDeleting = false;
+                deletingMessageId = "";
+            }
+        }
+        
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        presetGroups = await PresetService.GetPresetGroupsAsync();
+        ungroupedPresets = await PresetService.GetUngroupedPresetsAsync();
+    }
+
+    protected override void OnInitialized()
+    {
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var queryParams = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+
+        if (queryParams.TryGetValue("host", out var hostValue))
+        {
+            host = hostValue.ToString();
+        }
+
+        if (queryParams.TryGetValue("vpn", out var vpnValue))
+        {
+            vpnName = vpnValue.ToString();
+        }
+
+        if (queryParams.TryGetValue("queue", out var queueValue))
+        {
+            queueName = queueValue.ToString();
+        }
+
+        auth.Password = string.Empty;
+    }
+
+    private void LoadPreset(PresetModel preset)
+    {
+        if (preset != null)
+        {
+            host = preset.Host;
+            vpnName = preset.VpnName;
+            auth.Username = preset.Username;
+            queueName = preset.QueueName;
+            selectedPreset = preset.Name;
+
+            Console.WriteLine($"Loaded Preset: {preset.Name}");
+        }
+        HideDropdownMenu();
+    }
+
+    Task HideDropdownMenu()
+    {
+        return presetDropdown?.Hide() ?? Task.CompletedTask;
+    }
+
+    private async Task DownloadFileAsync(MessageDetails message)
+    {
+        if (string.IsNullOrEmpty(message.MessageContent))
+            return;
+        var byteArray = System.Text.Encoding.UTF8.GetBytes(message.MessageContent);
+        var base64 = Convert.ToBase64String(byteArray);
+        var fileContent = $"data:text/plain;base64,{base64}";
+        DateTime timenow = DateTime.Now;
+        var fileName = message.DestinationName + "-" + timenow.ToString("yyyyMMdd-HHmmss") + ".txt";
+
+        await JSRuntime.InvokeVoidAsync("downloadFileFromBase64", fileName, fileContent);
+    }
+    private async Task DownloadFileXMLAsync(MessageDetails message)
+    {
+        if (string.IsNullOrEmpty(message.MessageContentXML))
+            return;
+        var byteArray = System.Text.Encoding.UTF8.GetBytes(message.MessageContentXML);
+        var base64 = Convert.ToBase64String(byteArray);
+        var fileContent = $"data:text/plain;base64,{base64}";
+        DateTime timenow = DateTime.Now;
+        var fileName = message.DestinationName + "-" + timenow.ToString("yyyyMMdd-HHmmss") + ".xml";
+
+        await JSRuntime.InvokeVoidAsync("downloadFileFromBase64", fileName, fileContent);
+    }
+
+    private async Task OnClientCertUpload(FileChangedEventArgs e)
+    {
+        var file = e.Files.FirstOrDefault();
+        if (file != null)
+        {
+            using var stream = file.OpenReadStream(5 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            auth.ClientCertificateBytes = ms.ToArray();
+        }
+    }
+
+    private async Task OnClientCertPemUpload(FileChangedEventArgs e)
+    {
+        var file = e.Files.FirstOrDefault();
+        if (file != null)
+        {
+            using var stream = file.OpenReadStream(2 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            auth.ClientCertificatePem = System.Text.Encoding.UTF8.GetString(ms.ToArray());
+        }
+    }
+
+    private async Task OnClientKeyPemUpload(FileChangedEventArgs e)
+    {
+        var file = e.Files.FirstOrDefault();
+        if (file != null)
+        {
+            using var stream = file.OpenReadStream(2 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            auth.ClientKeyPem = System.Text.Encoding.UTF8.GetString(ms.ToArray());
+        }
+    }
+}

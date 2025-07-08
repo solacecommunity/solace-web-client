@@ -1,0 +1,34 @@
+name: Docker Image
+
+on:
+  release:
+    types: published
+    tags:
+      - v*
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Docker meta
+      id: meta
+      uses: crazy-max/ghaction-docker-meta@v5
+      with:
+        images: solacecommunity/solace-web-client
+        tags: |
+          type=raw,value=latest,enable=${{ endsWith(GitHub.ref, 'master') }}
+          type=ref,event=tag
+          
+    - name: Login to DockerHub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        
+    - name: Build and push Docker images
+      uses: docker/build-push-action@v6.18.0
+      with:
+        push: ${{ GitHub.event_name != 'pull_request' || contains(GitHub.head_ref, 'feature') }}
+        tags: ${{ steps.meta.outputs.tags }}

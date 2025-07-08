@@ -1,0 +1,164 @@
+﻿@page "/semp"
+@using SolaceWebClient.Services
+@using Blazorise
+@using Blazorise.DataGrid
+@inject SEMPService SEMPService
+@inject Blazored.Toast.Services.IToastService toastService
+@inject NavigationManager Navigation
+@inject PresetService PresetService
+
+<Layout>
+    <Title>SEMP API</Title>
+
+    <div class="form-container">
+        <div class="form-section">
+            <h4>SEMP Configuration</h4>
+            <div class="form-group">
+                <Dropdown @ref="presetDropdown">
+                    <DropdownToggle Color="Color.Primary">@selectedPreset</DropdownToggle>
+                    <DropdownMenu>
+                        @foreach (var group in presetGroups)
+                        {
+                            <Dropdown>
+                                <DropdownToggle> @group.GroupName </DropdownToggle>
+                                <DropdownMenu>
+                                    @foreach (var preset in group.Presets)
+                                    {
+                                        <DropdownItem @onclick="() => LoadPreset(preset)">@preset.Name</DropdownItem>
+                                    }
+                                </DropdownMenu>
+                            </Dropdown>
+                        }
+                        @foreach (var preset in ungroupedPresets)
+                        {
+                            <DropdownItem @onclick="() => LoadPreset(preset)">@preset.Name</DropdownItem>
+                        }
+                    </DropdownMenu>
+                </Dropdown>
+            </div>
+            <div class="form-group">
+                <div class="input-with-checkbox">
+                    <div class="input-container">
+                        <label>URL</label>
+                        <input @bind="sempUrl" name="sempUrl" autocomplete="on" placeholder="https://broker.domain" />
+                    </div>
+                    <div class="checkbox-container">
+                        <input type="checkbox" @bind="sempSslVerify" id="sempSslVerify" />
+                        <label for="sempSslVerify">SSL Verify</label>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Message VPN</label>
+                <input @bind="sempMessageVpn" name="sempMessageVpn" autocomplete="on" placeholder="default" />
+            </div>
+            <div class="form-group">
+                <label>Username</label>
+                <input @bind="sempUsername" name="sempUsername" autocomplete="on" placeholder="Username" />
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input @bind="sempPassword" name="sempPassword" type="password" autocomplete="on" placeholder="Password" />
+            </div>
+            <button class="btn btn-primary" @onclick="GetQueues">Get Queues</button>
+        </div>
+    </div>
+
+    <div>
+        <h4>Queues</h4>
+        <DataGrid TItem="SEMPService.GetQueuesDetails"
+                  Data="@getQueuesList"
+                  RowOverlayBackground="Background.Transparent"
+                  Filterable
+                  FilterMethod="DataGridFilterMethod.Contains"
+                  ShowPager
+                  ShowPageSizes
+                  PagerPosition="DataGridPagerPosition.TopAndBottom"
+                  PagerOptions="new(){ ButtonSize=Size.Small}">
+            <DataGridColumns>
+                <DataGridColumn TItem="SEMPService.GetQueuesDetails" Field="QueueName" Caption="Queue Name" />
+                <DataGridColumn TItem="SEMPService.GetQueuesDetails" Field="QueueOwner" Caption="Queue Owner" />
+            </DataGridColumns>
+            <RowOverlayTemplate>
+                <Div>
+                    <Button Color="Color.Primary" Size="Size.ExtraSmall" @onclick="() => BrowseQueue(context.Item.QueueName, context.Item.QueueOwner)">
+                        <Icon Name="IconName.Search" /> Browse
+                    </Button>
+                </Div>
+            </RowOverlayTemplate>
+        </DataGrid>
+    </div>
+
+</Layout>
+
+@code {
+
+    private string sempUrl = "";
+    private string sempMessageVpn = "";
+    private string sempUsername = "";
+    private string sempPassword = "";
+    private bool sempSslVerify = true;
+    private List<SEMPService.GetQueuesDetails> getQueuesList = new List<SEMPService.GetQueuesDetails>();
+
+    private string hostname;
+    private int smfPort;
+    private int smfsPort;
+    private bool smfsEnabled;
+
+    private string selectedPreset = "Select Preset";
+    private List<PresetGroupModel> presetGroups = new List<PresetGroupModel>();
+    private List<PresetModel> ungroupedPresets = new List<PresetModel>();
+    Dropdown presetDropdown;
+
+    private async Task GetQueues()
+    {
+        try
+        {
+            var config = await SEMPService.GetListenerAsync(sempUrl, sempMessageVpn, sempUsername, sempPassword, sempSslVerify);
+            smfsEnabled = config.SmfsEnabled;
+            smfPort = config.SmfPort;
+            smfsPort = config.SmfsPort;
+
+            getQueuesList = await SEMPService.GetQueuesAsync(sempUrl, sempMessageVpn, sempUsername, sempPassword, sempSslVerify);
+            toastService.ShowSuccess("Queues retrieved successfully");
+        }
+        catch (Exception ex)
+        {
+            toastService.ShowError($"Error retrieving queues: {ex.Message}");
+        }
+    }
+
+    private void BrowseQueue(string queueName, string queueOwner)
+    {
+        string hostname = new Uri(sempUrl).Host;
+        hostname = smfsEnabled ? $"{hostname}:{smfsPort}" : $"{hostname}:{smfPort}";
+
+        var uri = $"queue-browser?&vpn={sempMessageVpn}&hostname={hostname}&queue={queueName}&username={queueOwner}";
+        Navigation.NavigateTo(uri);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        presetGroups = await PresetService.GetPresetGroupsAsync();
+        ungroupedPresets = await PresetService.GetUngroupedPresetsAsync();
+    }
+
+    private void LoadPreset(PresetModel preset)
+    {
+        if (preset != null)
+        {
+            sempUrl = preset.SempUrl;
+            sempMessageVpn = preset.VpnName;
+            sempUsername = preset.sempUsername;
+            selectedPreset = preset.Name;
+
+            Console.WriteLine($"Loaded Preset: {preset.Name}");
+        }
+        HideDropdownMenu();
+    }
+
+    Task HideDropdownMenu()
+    {
+        return presetDropdown.Hide();
+    }
+}

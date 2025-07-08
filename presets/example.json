@@ -1,0 +1,60 @@
+﻿[
+  {
+    "GroupName": "test",
+    "Presets": [
+      {
+        "Name": "Example 1",
+        "Host": "broker.domain:5555",
+        "VpnName": "default",
+        "Username": "demo",
+        "QueueName": "demo",
+        "SempUrl": "http://broker.domain:8080",
+        "sempUsername": "admin"
+      },
+      {
+        "Name": "Example 2",
+        "Host": "tcps://broker.domain:55443",
+        "VpnName": "default",
+        "Username": "demo",
+        "Topic": "a/b/c",
+        "QueueName": "myqueue",
+        "SempUrl": "https://broker.domain:1943",
+        "sempUsername": "admin"
+      }
+    ]
+  },
+  {
+    "GroupName": "prod",
+    "Presets": [
+      {
+        "Name": "Example 3",
+        "Host": "prod.domain:5555",
+        "VpnName": "default",
+        "Username": "demo",
+        "QueueName": "demo",
+        "SempUrl": "http://prod.domain:8080",
+        "sempUsername": "admin"
+      },
+      {
+        "Name": "Example 4",
+        "Host": "tcps://prod.domain:55443",
+        "VpnName": "default",
+        "Username": "demo",
+        "Topic": "a/b/c",
+        "QueueName": "myqueue",
+        "SempUrl": "https://prod.domain:1943",
+        "sempUsername": "admin"
+      }
+    ]
+  },
+  {
+    "Name": "Example 5",
+    "Host": "tcps://broker.domain:55443",
+    "VpnName": "default",
+    "Username": "demo",
+    "Topic": "a/b/c",
+    "QueueName": "myqueue",
+    "SempUrl": "https://broker.domain:1943",
+    "sempUsername": "admin"
+  }
+]

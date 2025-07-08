@@ -1,0 +1,40 @@
+﻿@inherits LayoutComponentBase
+
+@using Blazored.Toast.Configuration
+
+<BlazoredToasts Position="ToastPosition.BottomRight"
+                Timeout="5"
+                ShowProgressBar="@true"
+                ShowCloseButton="@true"
+                MaxToastCount="5">
+    <CloseButtonContent>
+        <div>
+            <span class="myCloseButtonStyleClass">&times;</span>
+        </div>
+    </CloseButtonContent>
+</BlazoredToasts>
+
+<MessageProvider/>
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4">
+            <img src="favicon.png" style="width:32px;height:32px;">
+            <a href="https://github.com/solacecommunity/solace-web-client" target="_blank">GitHub - solacecommunity/solace-web-client</a>
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+<div id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="" class="reload">Reload</a>
+    <a class="dismiss">🗙</a>
+</div>

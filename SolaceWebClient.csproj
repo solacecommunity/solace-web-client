@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>6072fa2f-a14a-4b8e-9282-e803ca07ed74</UserSecretsId>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <DockerfileContext>.</DockerfileContext>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Remove="presets\example.json" />
+    <Content Remove="presets\presets.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="trustedca\.keep" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="trustedca\.keep" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Blazored.Toast" Version="4.2.1" />
+    <PackageReference Include="Blazorise.Bootstrap5" Version="1.7.7" />
+    <PackageReference Include="Blazorise.DataGrid" Version="1.7.7" />
+    <PackageReference Include="Blazorise.Icons.FontAwesome" Version="1.7.7" />
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.2" />
+    <PackageReference Include="SolaceSystems.Solclient.Messaging" Version="10.28.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="docs\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="presets\presets.json" />
+    <None Include="presets\example.json" />
+  </ItemGroup>
+
+</Project>

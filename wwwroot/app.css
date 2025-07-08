@@ -1,0 +1,220 @@
+html, body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background-color: #121212;
+    color: #e0e0e0;
+}
+
+a, .btn-link {
+    color: #00C895;
+}
+
+.btn-primary {
+    color: #121212;
+    background-color: #00C895;
+    border-color: #00C895;
+}
+
+.btn-secondary:hover {
+    color: #121212;
+    background-color: #00C895;
+    border-color: #00C895;
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem #121212, 0 0 0 0.25rem #00C895;
+}
+
+.content {
+    padding-top: 1.1rem;
+}
+
+h1:focus {
+    outline: none;
+}
+
+.valid.modified:not([type=checkbox]) {
+    outline: 1px solid #26b050;
+}
+
+.invalid {
+    outline: 1px solid #e50000;
+}
+
+.validation-message {
+    color: #e50000;
+}
+
+.blazor-error-boundary::after {
+    content: "An error has occurred.";
+    color: #e50000;
+}
+
+.darker-border-checkbox.form-check-input {
+    border-color: #929292;
+}
+
+.navbar {
+    background-color: #1c1c1c;
+}
+
+.nav-link {
+    color: #e0e0e0;
+}
+
+    .nav-link:hover {
+        color: #00C895;
+    }
+
+.navbar-brand {
+    color: #00C895;
+}
+
+.page {
+    background-color: #121212;
+}
+
+.top-row {
+    border-bottom: 1px solid #333;
+    background-color: #1c1c1c;
+}
+
+.nav-scrollable {
+    background-color: #1c1c1c;
+    color: #e0e0e0;
+}
+
+.main {
+    background-color: #121212;
+    color: #e0e0e0;
+}
+
+.article {
+    background-color: #1c1c1c;
+    color: #e0e0e0;
+}
+
+.form-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.form-section {
+    background-color: #1c1c1c;
+    padding: 20px;
+    border-radius: 10px;
+    flex: 1;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        color: #00C895;
+    }
+
+    .form-group input, .form-group textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #333;
+        border-radius: 5px;
+        background-color: #333;
+        color: #e0e0e0;
+    }
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+}
+
+.loading-message-delete {
+    position: absolute;
+    top: 30%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #1c1c1c;
+    padding: 20px;
+    border-radius: 8px;
+    color: #00C895;
+}
+
+.loading-message-browsing {
+    position: absolute;
+    top: 60%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #1c1c1c;
+    padding: 20px;
+    border-radius: 8px;
+    color: #00C895;
+}
+
+.toggle-icon {
+    display: inline-block;
+    cursor: pointer;
+    transition: transform 0.3s ease-in-out;
+}
+
+    .toggle-icon.rotated {
+        transform: rotate(90deg);
+    }
+
+.table {
+    background-color: #1c1c1c;
+    color: #e0e0e0;
+}
+.table th,
+.table td {
+    border-color: #333;
+}
+
+.table th {
+    background-color: #333;
+    color: #e0e0e0;
+}
+
+
+.input-with-checkbox {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.input-container {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.checkbox-container {
+    margin-left: 10px;
+    white-space: nowrap;
+}
+
+.modal-content {
+    background-color: #303030;
+}
+
+.datagrid tbody tr:hover {
+    color: #00C895;
+}
+
+.detail-row-user-properties {
+    color: #e0e0e0;
+}
+
+.detail-row-message-content {
+    color: #e0e0e0;
+    max-width: 90em;
+    overflow: clip;
+    border: 1px solid #ccc;
+    padding: 10px;
+}
