@@ -24,9 +24,9 @@
 
   <ItemGroup>
     <PackageReference Include="Blazored.Toast" Version="4.2.1" />
-    <PackageReference Include="Blazorise.Bootstrap5" Version="1.7.7" />
-    <PackageReference Include="Blazorise.DataGrid" Version="1.7.7" />
-    <PackageReference Include="Blazorise.Icons.FontAwesome" Version="1.7.7" />
+    <PackageReference Include="Blazorise.Bootstrap5" Version="1.8.0" />
+    <PackageReference Include="Blazorise.DataGrid" Version="1.8.0" />
+    <PackageReference Include="Blazorise.Icons.FontAwesome" Version="1.8.0" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.2" />
     <PackageReference Include="SolaceSystems.Solclient.Messaging" Version="10.28.1" />
   </ItemGroup>
