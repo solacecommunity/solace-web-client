@@ -376,7 +376,7 @@
     private List<PresetGroupModel> presetGroups = new List<PresetGroupModel>();
     private List<PresetModel> ungroupedPresets = new List<PresetModel>();
 
-    private DataGrid<MessageDetails> dataGrid;
+    private DataGrid<MessageDetails> dataGrid = default!;
     private List<MessageDetails> messages = new List<MessageDetails>();
 
     private Authentication pubAuth = new Authentication();
@@ -440,8 +440,7 @@
 
             Console.WriteLine($"Loaded Preset: {preset.Name}");
         }
-        HidePubDropdownMenu();
-
+        await HidePubDropdownMenu();
     }
 
     private async Task LoadPresetSubscribe(PresetModel preset)
@@ -456,15 +455,22 @@
 
             Console.WriteLine($"Loaded Preset: {preset.Name}");
         }
-        HideSubDropdownMenu();
-
+        await HideSubDropdownMenu();
     }
 
     private void ConnectAndPublish()
     {
+        if (string.IsNullOrEmpty(publishHost) || string.IsNullOrEmpty(publishVpnName) || 
+            string.IsNullOrEmpty(publishTopic) || publishMessage == null)
+        {
+            toastService.ShowError("Host, VPN-Name, Topic or Message cannot be empty.");
+            return;
+        }
+
         try
         {
-            PublishService.PublishMessage(publishHost, publishVpnName, pubAuth, publishTopic, publishMessage, publishSslVerify);
+            PublishService.PublishMessage(publishHost, publishVpnName, pubAuth, publishTopic, 
+                publishMessage, publishSslVerify);
             toastService.ShowSuccess("Successfully published message");
         }
         catch (SolaceSystems.Solclient.Messaging.OperationErrorException ex)
@@ -475,74 +481,80 @@
 
     private async Task SubscribeToTopic()
     {
+        if (string.IsNullOrEmpty(subscribeHost) || string.IsNullOrEmpty(subscribeVpnName) || 
+            string.IsNullOrEmpty(subscribeTopic))
+        {
+            toastService.ShowError("Host, VPN-Name or Topic cannot be empty.");
+            return;
+        }
+
         try
         {
-            SubscribeService.SubscribeToTopic(subscribeHost, subscribeVpnName, subAuth, subscribeTopic, subscribeSslVerify, message =>
-            {
-                InvokeAsync(() =>
+            SubscribeService.SubscribeToTopic(subscribeHost, subscribeVpnName, subAuth, 
+                subscribeTopic, subscribeSslVerify, async message =>
                 {
-                    messages.Add(message);
-                    dataGrid.Reload();
-                    StateHasChanged();
+                    await InvokeAsync(() =>
+                    {
+                        messages.Add(message);
+                        dataGrid?.Reload();
+                        StateHasChanged();
+                    });
                 });
-            });
             toastService.ShowSuccess("Subscription started");
         }
         catch (SolaceSystems.Solclient.Messaging.OperationErrorException ex)
         {
             toastService.ShowError($"Error starting Subscription: {ex.ErrorInfo}");
         }
-
-
     }
 
-    public void Unsubscribe()
+    private void Unsubscribe()
     {
         try
         {
-            SubscribeService.Disconnect();
+            SubscribeService?.Disconnect();
             toastService.ShowSuccess("Subscription stopped");
         }
         catch (SolaceSystems.Solclient.Messaging.OperationErrorException ex)
         {
             toastService.ShowError($"Error: {ex.ErrorInfo}");
         }
-
     }
 
-    public void Dispose()
+    private async Task HidePubDropdownMenu()
     {
-        SubscribeService.Dispose();
-        PublishService.Dispose();
+        if (pubPresetDropdown != null)
+            await pubPresetDropdown.Hide();
     }
 
-    Task HidePubDropdownMenu()
+    private async Task HideSubDropdownMenu()
     {
-        return pubPresetDropdown.Hide();
-    }
-
-    Task HideSubDropdownMenu()
-    {
-        return subPresetDropdown.Hide();
+        if (subPresetDropdown != null)
+            await subPresetDropdown.Hide();
     }
 
     private async Task DownloadFileAsync(MessageDetails message)
     {
+        if (message?.MessageContent == null)
+            return;
+
         var byteArray = System.Text.Encoding.UTF8.GetBytes(message.MessageContent);
         var base64 = Convert.ToBase64String(byteArray);
         var fileContent = $"data:text/plain;base64,{base64}";
-        DateTime timenow = DateTime.Now;
-        var fileName = message.DestinationName + "-" + timenow.ToString("yyyyMMdd-HHmmss") + ".txt";
+        var fileName = message.DestinationName + "-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".txt";
 
         await JSRuntime.InvokeVoidAsync("downloadFileFromBase64", fileName, fileContent);
     }
+
     private async Task DownloadFileXMLAsync(MessageDetails message)
     {
+        if (message?.MessageContentXML == null)
+            return;
+
         var byteArray = System.Text.Encoding.UTF8.GetBytes(message.MessageContentXML);
         var base64 = Convert.ToBase64String(byteArray);
         var fileContent = $"data:text/plain;base64,{base64}";
-        DateTime timenow = DateTime.Now;
-        var fileName = message.DestinationName + "-" + timenow.ToString("yyyyMMdd-HHmmss") + ".xml";
+        var fileName = message.DestinationName + "-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".xml";
 
         await JSRuntime.InvokeVoidAsync("downloadFileFromBase64", fileName, fileContent);
     }
@@ -617,5 +629,11 @@
             await stream.CopyToAsync(ms);
             subAuth.ClientKeyPem = System.Text.Encoding.UTF8.GetString(ms.ToArray());
         }
+    }
+
+    public void Dispose()
+    {
+        SubscribeService?.Dispose();
+        PublishService?.Dispose();
     }
 }
