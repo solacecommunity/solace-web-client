@@ -39,5 +39,5 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
         repository: solacecommunity/solace-web-client
-        short-description: ${{ github.event.repository.description }}
+        short-description: "The Solace Web Client offers Queue Browsing, Publishing and Subscribing"
         enable-url-completion: true
