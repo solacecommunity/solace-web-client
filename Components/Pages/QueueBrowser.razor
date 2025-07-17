@@ -4,6 +4,7 @@
 @using Blazorise.DataGrid
 @using SolaceSystems.Solclient.Messaging
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
 @inject QueueBrowserService QueueBrowserService
 @inject ILogger<QueueBrowser> Logger
 @inject Blazored.Toast.Services.IToastService toastService
@@ -13,7 +14,7 @@
 @inject IJSRuntime JSRuntime
 
 <Layout>
-    <Title>Queue Browser</Title>
+    <PageTitle>Queue Browser</PageTitle>
 
     <div class="form-group">
         <Dropdown @ref="presetDropdown">
@@ -352,6 +353,11 @@
         if (queryParams.TryGetValue("queue", out var queueValue))
         {
             queueName = queueValue.ToString();
+        }
+
+        if (queryParams.TryGetValue("username", out var usernameValue))
+        {
+            auth.Username = usernameValue.ToString();
         }
 
         auth.Password = string.Empty;
