@@ -32,3 +32,12 @@ jobs:
       with:
         push: ${{ GitHub.event_name != 'pull_request' || contains(GitHub.head_ref, 'feature') }}
         tags: ${{ steps.meta.outputs.tags }}
+
+    - name: Docker Hub Description
+      uses: peter-evans/dockerhub-description@v4
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        repository: solacecommunity/solace-web-client
+        short-description: ${{ github.event.repository.description }}
+        enable-url-completion: true
