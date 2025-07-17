@@ -2,13 +2,15 @@
 @using SolaceWebClient.Services
 @using Blazorise
 @using Blazorise.DataGrid
+@using Microsoft.AspNetCore.Components.Web
 @inject SEMPService SEMPService
+@inject ILogger<SEMP> Logger
 @inject Blazored.Toast.Services.IToastService toastService
-@inject NavigationManager Navigation
 @inject PresetService PresetService
+@inject NavigationManager Navigation
 
 <Layout>
-    <Title>SEMP API</Title>
+    <PageTitle>SEMP</PageTitle>
 
     <div class="form-container">
         <div class="form-section">
@@ -81,7 +83,7 @@
             </DataGridColumns>
             <RowOverlayTemplate>
                 <Div>
-                    <Button Color="Color.Primary" Size="Size.ExtraSmall" @onclick="() => BrowseQueue(context.Item.QueueName, context.Item.QueueOwner)">
+                    <Button Color="Color.Primary" Size="Size.ExtraSmall" @onclick="() => BrowseQueue(context.Item.QueueName, context.Item.QueueOwner, sempMessageVpn)">
                         <Icon Name="IconName.Search" /> Browse
                     </Button>
                 </Div>
@@ -100,7 +102,6 @@
     private bool sempSslVerify = true;
     private List<SEMPService.GetQueuesDetails> getQueuesList = new List<SEMPService.GetQueuesDetails>();
 
-    private string hostname;
     private int smfPort;
     private int smfsPort;
     private bool smfsEnabled;
@@ -128,7 +129,7 @@
         }
     }
 
-    private void BrowseQueue(string queueName, string queueOwner)
+    private void BrowseQueue(string queueName, string queueOwner, string sempMessageVpn)
     {
         string hostname = new Uri(sempUrl).Host;
         hostname = smfsEnabled ? $"{hostname}:{smfsPort}" : $"{hostname}:{smfPort}";
