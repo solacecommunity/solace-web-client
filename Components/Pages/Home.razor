@@ -4,6 +4,7 @@
 @using SolaceWebClient.Services
 @using Blazorise
 @using Blazorise.DataGrid
+@using System.Text.Json
 @inject SolacePublishService PublishService
 @inject SolaceSubscribeService SubscribeService
 @inject Blazored.Toast.Services.IToastService toastService
@@ -319,7 +320,14 @@
                 </button>
                 <br>
                 <div>
-                    @message.MessageContent
+                    @if (IsJson(message.MessageContent))
+                    {
+                        <pre><code>@PrettifyJson(message.MessageContent)</code></pre>
+                    }
+                    else
+                    {
+                        @message.MessageContent
+                    }
                 </div>
                 <br>
             }
@@ -635,5 +643,41 @@
     {
         SubscribeService?.Dispose();
         PublishService?.Dispose();
+    }
+
+    private static bool IsJson(string? input)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+            return false;
+        input = input.Trim();
+        if ((input.StartsWith("{") && input.EndsWith("}")) ||
+            (input.StartsWith("[") && input.EndsWith("]")))
+        {
+            try
+            {
+                JsonDocument.Parse(input);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    private static string PrettifyJson(string? input)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+            return string.Empty;
+        try
+        {
+            using var doc = JsonDocument.Parse(input);
+            return JsonSerializer.Serialize(doc, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch
+        {
+            return input ?? string.Empty;
+        }
     }
 }

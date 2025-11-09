@@ -5,6 +5,7 @@
 @using SolaceSystems.Solclient.Messaging
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.Web
+@using System.Text.Json
 @inject QueueBrowserService QueueBrowserService
 @inject ILogger<QueueBrowser> Logger
 @inject Blazored.Toast.Services.IToastService toastService
@@ -210,7 +211,14 @@
                     </button>
                     <br>
                     <div>
-                        @message.MessageContent
+                        @if (IsJson(message.MessageContent))
+                        {
+                            <pre><code>@PrettifyJson(message.MessageContent)</code></pre>
+                        }
+                        else
+                        {
+                            @message.MessageContent
+                        }
                     </div>
                     <br>
                 }
@@ -441,6 +449,42 @@
             using var ms = new MemoryStream();
             await stream.CopyToAsync(ms);
             auth.ClientKeyPem = System.Text.Encoding.UTF8.GetString(ms.ToArray());
+        }
+    }
+
+    private static bool IsJson(string? input)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+            return false;
+        input = input.Trim();
+        if ((input.StartsWith("{") && input.EndsWith("}")) ||
+            (input.StartsWith("[") && input.EndsWith("]")))
+        {
+            try
+            {
+                JsonDocument.Parse(input);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    private static string PrettifyJson(string? input)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+            return string.Empty;
+        try
+        {
+            using var doc = JsonDocument.Parse(input);
+            return JsonSerializer.Serialize(doc, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch
+        {
+            return input ?? string.Empty;
         }
     }
 }
