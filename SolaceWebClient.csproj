@@ -28,7 +28,7 @@
     <PackageReference Include="Blazorise.DataGrid" Version="1.8.0" />
     <PackageReference Include="Blazorise.Icons.FontAwesome" Version="1.8.0" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.22.1" />
-    <PackageReference Include="SolaceSystems.Solclient.Messaging" Version="10.28.1" />
+    <PackageReference Include="SolaceSystems.Solclient.Messaging" Version="10.28.3" />
   </ItemGroup>
 
   <ItemGroup>
