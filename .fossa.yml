@@ -1,0 +1,25 @@
+version: 3
+
+project:
+  locator: solacecommunity_solace-web-client
+  id: solacecommunity_solace-web-client
+  name: solace-web-client
+  teams: []
+  labels:
+    - dotnet
+
+vendoredDependencies:
+  forceRescans: false
+  scanMethod: CLILicenseScan
+  licenseScanPathFilters:
+    exclude:
+      - "./.git"
+      - "./.github"
+
+paths:
+  exclude:
+    - ./.git
+    - ./.github
+
+telemetry:
+  scope: full
